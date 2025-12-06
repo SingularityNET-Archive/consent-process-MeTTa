@@ -1,0 +1,23 @@
+{
+    "id": "FacilitiesExpansion",
+    "submitter": "George",
+    "reviewers": ["Helen", "Ian", "Jack"],
+    "objections": [
+      {
+        "id": "OBJ11",
+        "reviewer": "Helen",
+        "reason": "Missing safety clearance document",
+        "impact": "high",
+        "suggestion": "Include certification",
+        "resolved": true
+      },
+      {
+        "id": "OBJ12",
+        "reviewer": "Jack",
+        "reason": "Noise mitigation plan unclear",
+        "impact": "low",
+        "suggestion": "Add mitigation details",
+        "resolved": false
+      }
+    ]
+  }

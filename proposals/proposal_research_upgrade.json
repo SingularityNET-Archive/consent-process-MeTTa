@@ -1,0 +1,15 @@
+{
+    "id": "ResearchUpgrade",
+    "submitter": "Diana",
+    "reviewers": ["Eve", "Frank"],
+    "objections": [
+      {
+        "id": "OBJ1",
+        "reviewer": "Eve",
+        "reason": "Insufficient justification for equipment cost",
+        "impact": "medium",
+        "suggestion": "Provide cost-benefit breakdown",
+        "resolved": false
+      }
+    ]
+  }
