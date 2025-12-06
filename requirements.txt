@@ -1,3 +1,2 @@
-https://files.pythonhosted.org/packages/c2/31/a89c8bbeec645b5fb61589704bba3af58dd03fe2794dcd3158a68c4fa9aa/hyperon-0.2.9-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-streamlit==1.52.1
-
+streamlit==1.30.0
+hyperon==0.7.0
