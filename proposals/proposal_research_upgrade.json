@@ -1,7 +1,15 @@
 {
     "id": "ResearchUpgrade",
-    "submitter": "Diana",
-    "reviewers": ["Eve", "Frank"],
+    "title": "Research Equipment Upgrade",
+    "status": "In Review",
+    "author": "Diana",
+    "created": "2025-02-10",
+    "updated": "2025-02-10",
+    "type": "Research Proposal",
+    "description": "Proposal for upgrading research equipment",
+    "associated_workgroup": "Research",
+    "activities": [],
+    "impact": "Research equipment upgrade requires cost-benefit justification",
     "objections": [
       {
         "id": "OBJ1",
@@ -11,5 +19,13 @@
         "suggestion": "Provide cost-benefit breakdown",
         "resolved": false
       }
-    ]
+    ],
+    "timeline": [
+      {
+        "date": "2025-02-10T10:00:00",
+        "event": "Proposal Created",
+        "description": "The proposal was created and submitted for review."
+      }
+    ],
+    "comments": []
   }

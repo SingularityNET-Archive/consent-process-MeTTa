@@ -127,21 +127,23 @@ def assert_proposal_and_record(file_or_path, is_file_path=False):
         if is_file_path:
             # Check if file is empty
             if os.path.getsize(file_or_path) == 0:
-                return None, None, f"File is empty: {file_or_path}"
+                return None, None, f"File is empty: {file_or_path}", None
             with open(file_or_path, 'r') as f:
                 content = f.read().strip()
                 if not content:
-                    return None, None, f"File is empty: {file_or_path}"
+                    return None, None, f"File is empty: {file_or_path}", None
                 data = json.loads(content)
         else:
             content = file_or_path.read().decode('utf-8').strip()
             if not content:
-                return None, None, f"File is empty: {file_or_path.name}"
+                return None, None, f"File is empty: {file_or_path.name}", None
             data = json.loads(content)
         
         pid = data.get("id", "UnknownProposal")
-        submitter = data.get("submitter", "UnknownSubmitter")
-        reviewers = data.get("reviewers", []) or data.get("reviewers", [])
+        title = data.get("title", pid)  # Use title if available, fallback to id
+        # Handle both "submitter" and "author" fields
+        submitter = data.get("submitter") or data.get("author", "UnknownSubmitter")
+        reviewers = data.get("reviewers", [])
         objections = data.get("objections", [])
 
         # Build MeTTa statements with canonical predicate signatures
@@ -198,6 +200,7 @@ def assert_proposal_and_record(file_or_path, is_file_path=False):
             'objections': objections,
             'reviewers': reviewers,
             'submitter': submitter,
+            'title': title,
             'proposal_json': data  # Store original JSON data
         }
         
@@ -243,22 +246,65 @@ if 'sample_files' in st.session_state and st.session_state.sample_files:
 # Display results
 if results:
     st.subheader("✅ Consent Evaluation Results")
+    
+    # Create a mapping of titles to proposal IDs for the dropdown
+    title_to_pid = {}
+    pid_list = []
+    title_list = []
+    
+    for pid in results.keys():
+        title = pid
+        if pid in proposal_details:
+            title = proposal_details[pid].get('title', pid)
+        title_to_pid[title] = pid
+        pid_list.append(pid)
+        title_list.append(title)
+    
+    # Display summary table
+    st.markdown("### Summary")
+    summary_data = []
     for pid, status in results.items():
+        title = pid
+        if pid in proposal_details:
+            title = proposal_details[pid].get('title', pid)
         status_icon = "✅" if status else "❌"
         status_text = "Approved" if status else "Not Approved"
-        
-        # Main result
-        st.write(f"{status_icon} **{pid}** → {status_text}")
-        
-        # Show MeTTa evaluation details if available
+        summary_data.append({
+            "Title": title,
+            "Status": f"{status_icon} {status_text}",
+            "ID": pid
+        })
+    
+    # Display all proposals in a summary view
+    for pid, status in results.items():
+        title = pid
         if pid in proposal_details:
-            details = proposal_details[pid]
+            title = proposal_details[pid].get('title', pid)
+        status_icon = "✅" if status else "❌"
+        status_text = "Approved" if status else "Not Approved"
+        st.write(f"{status_icon} **{title}** → {status_text}")
+    
+    st.markdown("---")
+    
+    # Dropdown to select a proposal for detailed view
+    if len(title_list) > 0:
+        selected_title = st.selectbox(
+            "Select a proposal to view details:",
+            options=title_list,
+            index=0,
+            key="proposal_selector"
+        )
+        
+        selected_pid = title_to_pid[selected_title]
+        
+        if selected_pid in proposal_details:
+            details = proposal_details[selected_pid]
             
             # Display proposal JSON in expander
-            with st.expander(f"📄 Proposal JSON for {pid}", expanded=False):
+            with st.expander(f"📄 Proposal JSON for {selected_title}", expanded=False):
                 st.json(details.get('proposal_json', {}))
             
-            with st.expander(f"🔍 MeTTa Evaluation Details for {pid}", expanded=False):
+            with st.expander(f"🔍 MeTTa Evaluation Details for {selected_title}", expanded=False):
                 # Proposal info
                 st.markdown("### Proposal Information")
                 col1, col2 = st.columns(2)
@@ -312,12 +358,12 @@ if results:
                 actual_unresolved_count = sum(1 for obj in details['objections'] if not obj.get('resolved', False))
                 
                 if actual_unresolved_count > 0:
-                    st.warning(f"❌ **No Consent**: Proposal {pid} has {actual_unresolved_count} unresolved objection(s).")
-                    st.markdown(f"**Python check:** `python_has_unresolved({pid})` = True → `python_has_consent({pid})` = False")
+                    st.warning(f"❌ **No Consent**: Proposal {selected_title} has {actual_unresolved_count} unresolved objection(s).")
+                    st.markdown(f"**Python check:** `python_has_unresolved({selected_pid})` = True → `python_has_consent({selected_pid})` = False")
                     st.markdown(f"**MeTTa rule (advisory):** `(HasConsent P) :- (BudgetProposal P) (not (HasUnresolvedObjection P))`")
                 else:
-                    st.success(f"✅ **Has Consent**: Proposal {pid} exists and has no unresolved objections.")
-                    st.markdown(f"**Python check:** `python_has_unresolved({pid})` = False → `python_has_consent({pid})` = True")
+                    st.success(f"✅ **Has Consent**: Proposal {selected_title} exists and has no unresolved objections.")
+                    st.markdown(f"**Python check:** `python_has_unresolved({selected_pid})` = False → `python_has_consent({selected_pid})` = True")
                     st.markdown(f"**MeTTa rule (advisory):** `(HasConsent P) :- (BudgetProposal P) (not (HasUnresolvedObjection P))`")
                 
                 # Objections breakdown

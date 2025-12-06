@@ -1,7 +1,15 @@
 {
     "id": "FacilitiesExpansion",
-    "submitter": "George",
-    "reviewers": ["Helen", "Ian", "Jack"],
+    "title": "Facilities Expansion Project",
+    "status": "In Review",
+    "author": "George",
+    "created": "2025-03-05",
+    "updated": "2025-03-05",
+    "type": "Facilities Proposal",
+    "description": "Proposal for expanding facilities with safety and noise mitigation requirements",
+    "associated_workgroup": "Facilities",
+    "activities": [],
+    "impact": "Facilities expansion requires safety clearance and noise mitigation planning",
     "objections": [
       {
         "id": "OBJ11",
@@ -19,5 +27,13 @@
         "suggestion": "Add mitigation details",
         "resolved": false
       }
-    ]
+    ],
+    "timeline": [
+      {
+        "date": "2025-03-05T10:00:00",
+        "event": "Proposal Created",
+        "description": "The proposal was created and submitted for review."
+      }
+    ],
+    "comments": []
   }

@@ -1,7 +1,15 @@
 {
     "id": "Proposal123",
-    "submitter": "Alice",
-    "reviewers": ["Bob", "Carol"],
+    "title": "Budget Proposal 123",
+    "status": "In Review",
+    "author": "Alice",
+    "created": "2025-01-15",
+    "updated": "2025-01-15",
+    "type": "Budget Proposal",
+    "description": "Budget proposal with ROI calculation requirements",
+    "associated_workgroup": "Finance",
+    "activities": [],
+    "impact": "Proposal requires ROI calculation for approval",
     "objections": [
       {
         "id": "OBJ1",
@@ -12,5 +20,13 @@
         "suggestion": "Add ROI analysis",
         "resolved": false
       }
-    ]
+    ],
+    "timeline": [
+      {
+        "date": "2025-01-15T10:00:00",
+        "event": "Proposal Created",
+        "description": "The proposal was created and submitted for review."
+      }
+    ],
+    "comments": []
   }

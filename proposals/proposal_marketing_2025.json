@@ -1,6 +1,22 @@
 {
     "id": "Marketing2025",
-    "submitter": "Alice",
-    "reviewers": ["Bob", "Carol"],
-    "objections": []
+    "title": "Marketing Campaign 2025",
+    "status": "In Review",
+    "author": "Alice",
+    "created": "2025-01-20",
+    "updated": "2025-01-20",
+    "type": "Marketing Proposal",
+    "description": "Marketing campaign proposal for 2025",
+    "associated_workgroup": "Marketing",
+    "activities": [],
+    "impact": "Marketing campaign proposal for 2025",
+    "objections": [],
+    "timeline": [
+      {
+        "date": "2025-01-20T10:00:00",
+        "event": "Proposal Created",
+        "description": "The proposal was created and submitted for review."
+      }
+    ],
+    "comments": []
   }
