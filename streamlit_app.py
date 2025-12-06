@@ -197,7 +197,8 @@ def assert_proposal_and_record(file_or_path, is_file_path=False):
             'python_consent': consent,
             'objections': objections,
             'reviewers': reviewers,
-            'submitter': submitter
+            'submitter': submitter,
+            'proposal_json': data  # Store original JSON data
         }
         
         return pid, approval, None, details
@@ -252,6 +253,10 @@ if results:
         # Show MeTTa evaluation details if available
         if pid in proposal_details:
             details = proposal_details[pid]
+            
+            # Display proposal JSON in expander
+            with st.expander(f"📄 Proposal JSON for {pid}", expanded=False):
+                st.json(details.get('proposal_json', {}))
             
             with st.expander(f"🔍 MeTTa Evaluation Details for {pid}", expanded=False):
                 # Proposal info
