@@ -1,31 +1,26 @@
 {
     "id": "cmij4o2ij0003l10ajwv6en1d",
-    "title": "Q4 2025 Progress Report - Process Guild",
+    "title": "Q4 2025 Progress Report - Guild",
     "status": "In Review",
-    "author": "tevosaks",
+    "author": "Ambassador01",
     "created": "2025-11-20",
     "updated": "2025-11-20",
     "type": "Quarterly Report & Proposal",
     "description": "Q4 2025 Workgroup Report",
-    "associated_workgroup": "Process Guild",
+    "associated_workgroup": "Guild",
     "activities": [
       {
         "name": "Guild Documentation",
         "status": "Done",
-        "evidence": "https://docs.google.com/document/d/1neMzWdaTiX9UKeLS4MGTK0OgaDcKwR7dxRVw1XSxFDc"
+        "evidence": "xyz"
       },
       {
         "name": "Recognizing Zoom participation",
         "status": "Done",
-        "evidence": "https://docs.google.com/spreadsheets/d/1-sFKnrikPKxnQmIQgJPPo9ZNczDLroZ1"
-      },
-      {
-        "name": "Coordination Tooling Automation",
-        "status": "Not Done",
-        "reason": "The developers assigned in both cases were not able to meet deadlines and project has stopped"
+        "evidence": "xyz"
       }
     ],
-    "impact": "By operating and maintaining the Zoom and Discord integrations for the Swarm Treasury Manager, we ensured that contributors across all recognised workgroups received reliable acknowledgement of their recurring attendance and involvement. This directly improved fairness and transparency in rewards distribution while reducing manual reporting overhead for WG leads. Although the R&D Event Scheduling project experienced delays, the Guild demonstrated responsible resource stewardship by avoiding unnecessary spending and choosing not to force development without readiness. The research completed still informs future automation directions.",
+    "impact": "Impact statement",
     "objections": [],
     "timeline": [
       {
