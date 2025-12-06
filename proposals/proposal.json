@@ -1,0 +1,16 @@
+{
+    "id": "Proposal123",
+    "submitter": "Alice",
+    "reviewers": ["Bob", "Carol"],
+    "objections": [
+      {
+        "id": "OBJ1",
+        "reviewer": "Bob",
+        "relevance": "financial",
+        "reason": "Missing ROI calculation",
+        "impact": "medium",
+        "suggestion": "Add ROI analysis",
+        "resolved": false
+      }
+    ]
+  }
