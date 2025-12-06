@@ -9,100 +9,50 @@ st.set_page_config(page_title="MeTTa Consent Simulation", layout="wide")
 st.title("MeTTa Consent Simulation")
 st.write("Upload proposal JSON files and evaluate consent across nested circles/domains.")
 
+# Canonical Python store of facts for deterministic checks
+# { pid: { "raised": set((oid, reviewer)), "resolved": set(oid) } }
+if 'proposal_facts' not in st.session_state:
+    st.session_state.proposal_facts = {}
+
+# Canonical MeTTa rules
+CANONICAL_RULES = r'''
+;; ---------- canonical rules ----------
+(: BudgetProposal P)
+(: Proposal P)
+(: Objection O)
+(: Reviewer R)
+
+(SubmittedBy P R)
+(ReviewedBy P R)
+
+;; canonical objection facts:
+(ObjectionRaised P O R)
+(ObjectionResolved P O)
+
+;; derived predicate (kept for informational queries)
+(HasUnresolvedObjection P) :-
+    (ObjectionRaised P O R)
+    (not (ObjectionResolved P O))
+
+(HasConsent P) :-
+    (BudgetProposal P)
+    (not (HasUnresolvedObjection P))
+;; ------------------------------------
+'''
+
+# Load MeTTa rules function
+def load_rules(metta_instance):
+    """Load canonical rules into MeTTa interpreter."""
+    metta_instance.run(CANONICAL_RULES)
+
 # Initialize MeTTa interpreter with error handling
 try:
     metta = MeTTa()
-    
-    # Load MeTTa rules - use the same format as sim.py for compatibility
-    def load_rules():
-        rules = r'''
-        ;; -----------------------------------------------------------------
-        ;; Type Declarations
-        ;; -----------------------------------------------------------------
-        (: BudgetProposal P)
-        (: Reviewer R)
-        (: Objection O)
-
-        ;; -----------------------------------------------------------------
-        ;; Core Relations
-        ;; -----------------------------------------------------------------
-        (SubmittedBy P R)
-        (ReviewedBy P R)
-
-        ;; An objection is a structured object:
-        ;; (Objection
-        ;;      :id O
-        ;;      :relevance REL
-        ;;      :reason REASON
-        ;;      :impact IMPACT
-        ;;      :suggestion SUG)
-        ;;
-        (ObjectionRaised P O R)
-        (ObjectionResolved P O)
-
-        ;; -----------------------------------------------------------------
-        ;; Derived Predicates
-        ;; -----------------------------------------------------------------
-
-        ;; A proposal has an unresolved objection if:
-        ;; - an objection is raised for proposal P
-        ;; - the same objection has NOT been resolved
-        (HasUnresolvedObjection P) :-
-            (ObjectionRaised P O R)
-            (not (ObjectionResolved P O))
-
-        ;; Consent = proposal exists AND there is NO unresolved objection.
-        (HasConsent P) :-
-            (BudgetProposal P)
-            (not (HasUnresolvedObjection P))
-        '''
-        metta.run(rules)
-    
-    load_rules()
+    load_rules(metta)
     st.success("MeTTa interpreter initialized successfully!")
     
     # Store rules for display
-    st.session_state.metta_rules = r'''
-        ;; -----------------------------------------------------------------
-        ;; Type Declarations
-        ;; -----------------------------------------------------------------
-        (: BudgetProposal P)
-        (: Reviewer R)
-        (: Objection O)
-
-        ;; -----------------------------------------------------------------
-        ;; Core Relations
-        ;; -----------------------------------------------------------------
-        (SubmittedBy P R)
-        (ReviewedBy P R)
-
-        ;; An objection is a structured object:
-        ;; (Objection
-        ;;      :id O
-        ;;      :relevance REL
-        ;;      :reason REASON
-        ;;      :impact IMPACT
-        ;;      :suggestion SUG)
-        ;;
-        (ObjectionRaised P O R)
-        (ObjectionResolved P O)
-
-        ;; -----------------------------------------------------------------
-        ;; Derived Predicates
-        ;; -----------------------------------------------------------------
-
-        ;; A proposal has an unresolved objection if:
-        ;; - an objection is raised for proposal P
-        ;; - the same objection has NOT been resolved
-        (HasUnresolvedObjection P) :-
-            (ObjectionRaised P O R)
-            (not (ObjectionResolved P O))
-
-        ;; Consent = proposal exists AND there is NO unresolved objection.
-        (HasConsent P) :-
-            (BudgetProposal P)
-            (not (HasUnresolvedObjection P))
-        '''
+    st.session_state.metta_rules = CANONICAL_RULES
     
 except Exception as e:
     st.error(f"Error initializing MeTTa: {e}")
@@ -159,8 +109,20 @@ uploaded_files = st.file_uploader("Upload JSON Proposal Files", accept_multiple_
 results = {}
 proposal_details = {}  # Store detailed info for each proposal
 
+# Python-side deterministic consent check functions
+def python_has_unresolved(pid):
+    """Deterministic check for unresolved objections using Python facts."""
+    facts = st.session_state.proposal_facts.get(pid, {"raised": set(), "resolved": set()})
+    raised_oids = {oid for (oid, _) in facts["raised"]}
+    unresolved = raised_oids - facts["resolved"]
+    return len(unresolved) > 0
+
+def python_has_consent(pid):
+    """Deterministic check for consent: consent when there are NO unresolved objections."""
+    return not python_has_unresolved(pid)
+
 # Process uploaded proposals
-def process_proposal(file_or_path, is_file_path=False):
+def assert_proposal_and_record(file_or_path, is_file_path=False):
     try:
         if is_file_path:
             # Check if file is empty
@@ -179,10 +141,10 @@ def process_proposal(file_or_path, is_file_path=False):
         
         pid = data.get("id", "UnknownProposal")
         submitter = data.get("submitter", "UnknownSubmitter")
-        reviewers = data.get("reviewers", [])
+        reviewers = data.get("reviewers", []) or data.get("reviewers", [])
         objections = data.get("objections", [])
 
-        # Build MeTTa statements exactly like sim.py
+        # Build MeTTa statements with canonical predicate signatures
         stmts = []
         stmts.append(f"(BudgetProposal {pid})")
         stmts.append(f"(SubmittedBy {pid} {submitter})")
@@ -191,53 +153,48 @@ def process_proposal(file_or_path, is_file_path=False):
             stmts.append(f"(Reviewer {r})")
             stmts.append(f"(ReviewedBy {pid} {r})")
 
+        # Prepare Python canonical store
+        if pid not in st.session_state.proposal_facts:
+            st.session_state.proposal_facts[pid] = {"raised": set(), "resolved": set()}
+
         for obj in objections:
             oid = obj.get("id")
             reviewer = obj.get("reviewer", "UnknownReviewer")
 
-            relevance = obj.get("relevance", "none")
-            reason = obj.get("reason", "none")
-            impact = obj.get("impact", "none")
-            suggestion = obj.get("suggestion", "none")
-
-            # Encode objection as a structured MeTTa term (like sim.py)
-            stmts.append(
-                f"(Objection "
-                f":id {oid} "
-                f":relevance \"{relevance}\" "
-                f":reason \"{reason}\" "
-                f":impact \"{impact}\" "
-                f":suggestion \"{suggestion}\")"
-            )
-
-            # Link objection to proposal
+            # Assert canonical MeTTa facts: (ObjectionRaised P O R)
             stmts.append(f"(ObjectionRaised {pid} {oid} {reviewer})")
 
             if obj.get("resolved", False):
                 stmts.append(f"(ObjectionResolved {pid} {oid})")
+                st.session_state.proposal_facts[pid]["resolved"].add(oid)
+            else:
+                st.session_state.proposal_facts[pid]["raised"].add((oid, reviewer))
 
-        # Load facts into MeTTa (same as sim.py)
+        # Assert statements into MeTTa
         metta.run("\n".join(stmts))
 
-        # Query MeTTa for consent and intermediate queries
+        # --- Python-grounded check (deterministic) ---
+        consent = python_has_consent(pid)
+        
+        # MeTTa's view for debugging (advisory)
         unresolved_query = f"(HasUnresolvedObjection {pid})"
         consent_query = f"(HasConsent {pid})"
+        me_unresolved = metta.run(unresolved_query)
+        me_consent = metta.run(consent_query)
         
-        unresolved_result = metta.run(unresolved_query)
-        consent_result = metta.run(consent_query)
-        
-        # MeTTa returns empty list if query doesn't match, non-empty if it does
-        # Empty = False (no consent), non-empty = True (has consent)
-        approval = bool(consent_result)
+        # Use Python consent as the canonical decision
+        approval = consent
         
         # Store details for display
         details = {
             'facts': stmts,
             'unresolved_query': unresolved_query,
-            'unresolved_result': unresolved_result,
+            'unresolved_result': me_unresolved,
             'consent_query': consent_query,
-            'consent_result': consent_result,
+            'consent_result': me_consent,
             'approval': approval,
+            'python_unresolved': python_has_unresolved(pid),
+            'python_consent': consent,
             'objections': objections,
             'reviewers': reviewers,
             'submitter': submitter
@@ -251,11 +208,18 @@ def process_proposal(file_or_path, is_file_path=False):
         filename = file_or_path if is_file_path else file_or_path.name
         return None, None, f"Error processing {filename}: {str(e)}", None
 
+# Reset MeTTa interpreter when files are uploaded (avoid state leakage)
+if uploaded_files:
+    # Reset interpreter and reload rules for clean state
+    metta = MeTTa()
+    load_rules(metta)
+    st.session_state.proposal_facts.clear()
+
 # Process uploaded files
 if uploaded_files:
     with st.spinner("Processing uploaded files..."):
         for file in uploaded_files:
-            pid, consent, error, details = process_proposal(file)
+            pid, consent, error, details = assert_proposal_and_record(file)
             if error:
                 st.error(f"Error processing {file.name}: {error}")
             else:
@@ -267,7 +231,7 @@ if uploaded_files:
 if 'sample_files' in st.session_state and st.session_state.sample_files:
     with st.spinner("Processing sample proposals..."):
         for file_path in st.session_state.sample_files:
-            pid, consent, error, details = process_proposal(file_path, is_file_path=True)
+            pid, consent, error, details = assert_proposal_and_record(file_path, is_file_path=True)
             if error:
                 st.error(f"Error processing {file_path}: {error}")
             else:
@@ -305,15 +269,23 @@ if results:
                 st.markdown("### Asserted MeTTa Facts")
                 st.code("\n".join(details['facts']), language='lisp')
                 
-                # MeTTa queries and results
-                st.markdown("### MeTTa Query Evaluation")
+                # Python deterministic check (canonical)
+                st.markdown("### Python Deterministic Check (Canonical)")
+                python_unresolved = details.get('python_unresolved', False)
+                python_consent = details.get('python_consent', False)
+                st.write(f"**Python `has_unresolved`:** {'✅ True' if python_unresolved else '❌ False'}")
+                st.write(f"**Python `has_consent`:** {'✅ True' if python_consent else '❌ False'}")
+                st.info("💡 **This is the canonical decision** - computed deterministically from Python facts.")
+                
+                # MeTTa queries and results (advisory/debugging)
+                st.markdown("### MeTTa Query Evaluation (Advisory)")
                 
                 # Unresolved objection query
                 st.markdown("#### Step 1: Check for Unresolved Objections")
                 st.code(details['unresolved_query'], language='lisp')
                 unresolved_bool = bool(details['unresolved_result'])
                 unresolved_display = "✅ True (has unresolved objections)" if unresolved_bool else "❌ False (no unresolved objections)"
-                st.write(f"**Result:** {unresolved_display}")
+                st.write(f"**MeTTa Result:** {unresolved_display}")
                 if details['unresolved_result']:
                     st.json(details['unresolved_result'])
                 else:
@@ -324,24 +296,24 @@ if results:
                 st.code(details['consent_query'], language='lisp')
                 consent_bool = bool(details['consent_result'])
                 consent_display = "✅ True (has consent)" if consent_bool else "❌ False (no consent)"
-                st.write(f"**Result:** {consent_display}")
+                st.write(f"**MeTTa Result:** {consent_display}")
                 if details['consent_result']:
                     st.json(details['consent_result'])
                 else:
                     st.write("*Empty result (no matches)*")
                 
-                # Reasoning - use actual approval status and objection data
+                # Reasoning - use Python canonical decision
                 st.markdown("### Reasoning")
                 actual_unresolved_count = sum(1 for obj in details['objections'] if not obj.get('resolved', False))
                 
                 if actual_unresolved_count > 0:
-                    st.warning(f"❌ **No Consent**: Proposal {pid} has {actual_unresolved_count} unresolved objection(s), so `HasConsent` evaluates to False.")
-                    st.markdown(f"According to the MeTTa rule: `(HasConsent P) :- (BudgetProposal P) (not (HasUnresolvedObjection P))`")
-                    st.markdown(f"Since `HasUnresolvedObjection {pid}` is True (there are unresolved objections), `HasConsent {pid}` evaluates to False.")
+                    st.warning(f"❌ **No Consent**: Proposal {pid} has {actual_unresolved_count} unresolved objection(s).")
+                    st.markdown(f"**Python check:** `python_has_unresolved({pid})` = True → `python_has_consent({pid})` = False")
+                    st.markdown(f"**MeTTa rule (advisory):** `(HasConsent P) :- (BudgetProposal P) (not (HasUnresolvedObjection P))`")
                 else:
-                    st.success(f"✅ **Has Consent**: Proposal {pid} exists and has no unresolved objections, so `HasConsent` evaluates to True.")
-                    st.markdown(f"According to the MeTTa rule: `(HasConsent P) :- (BudgetProposal P) (not (HasUnresolvedObjection P))`")
-                    st.markdown(f"Since `HasUnresolvedObjection {pid}` is False (no unresolved objections), `HasConsent {pid}` evaluates to True.")
+                    st.success(f"✅ **Has Consent**: Proposal {pid} exists and has no unresolved objections.")
+                    st.markdown(f"**Python check:** `python_has_unresolved({pid})` = False → `python_has_consent({pid})` = True")
+                    st.markdown(f"**MeTTa rule (advisory):** `(HasConsent P) :- (BudgetProposal P) (not (HasUnresolvedObjection P))`")
                 
                 # Objections breakdown
                 if details['objections']:
